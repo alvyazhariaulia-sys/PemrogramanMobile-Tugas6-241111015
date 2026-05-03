@@ -1,0 +1,30 @@
+package com.utama.aplikasikendarin
+
+import android.content.Context
+
+class TransaksiRepository(context: Context) {
+
+    private val dbHelper = TransaksiDatabaseHelper(context)
+
+
+    fun addTransaksi(transaksi: TransaksiEntity) {
+        dbHelper.insertTransaksi(transaksi)
+    }
+
+
+    fun getAllTransaksi(): List<TransaksiEntity> {
+        return dbHelper.getAllTransaksi()
+    }
+
+
+    fun getByStatus(status: String): List<TransaksiEntity> {
+        return getAllTransaksi().filter { it.status == status }
+    }
+
+
+    fun getTotalIncome(): Int {
+        return getAllTransaksi().sumOf {
+            it.harga.replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0
+        }
+    }
+}
