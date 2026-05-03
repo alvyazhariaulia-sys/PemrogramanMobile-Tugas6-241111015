@@ -1,0 +1,113 @@
+package com.utama.aplikasikendarin
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.Cursor
+import com.utama.aplikasikendarin.KendaraanDatabaseHelper as DBH
+
+class KendaraanRepository(context: Context) {
+
+    private val db = DBH(context)
+
+    fun addKendaraan(k: KendaraanEntity): Long {
+        val cv = ContentValues().apply {
+            put(DBH.COL_NAMA, k.nama)
+            put(DBH.COL_HARGA, k.harga)
+            put(DBH.COL_DESKRIPSI, k.deskripsi)
+            put(DBH.COL_TERSEDIA, k.tersedia)
+        }
+
+        return db.writableDatabase.insert(DBH.TABLE_KENDARAAN, null, cv)
+    }
+
+
+    fun getAllKendaraan(): List<KendaraanEntity> {
+        val list = mutableListOf<KendaraanEntity>()
+
+        val cursor: Cursor = db.readableDatabase.query(
+            DBH.TABLE_KENDARAAN,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "${DBH.COL_ID} DESC"
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(
+                    KendaraanEntity(
+                        id = it.getInt(it.getColumnIndexOrThrow(DBH.COL_ID)),
+                        nama = it.getString(it.getColumnIndexOrThrow(DBH.COL_NAMA)),
+                        harga = it.getInt(it.getColumnIndexOrThrow(DBH.COL_HARGA)), // ✅ FIX DI SINI
+                        deskripsi = it.getString(it.getColumnIndexOrThrow(DBH.COL_DESKRIPSI)),
+                        tersedia = it.getInt(it.getColumnIndexOrThrow(DBH.COL_TERSEDIA))
+                    )
+                )
+            }
+        }
+
+        return list
+    }
+
+    fun getKendaraanById(id: Int): KendaraanEntity? {
+        val cursor = db.readableDatabase.query(
+            DBH.TABLE_KENDARAAN,
+            null,
+            "${DBH.COL_ID} = ?",
+            arrayOf(id.toString()),
+            null,
+            null,
+            null
+        )
+
+        return cursor.use {
+            if (it.moveToFirst()) {
+                KendaraanEntity(
+                    id = it.getInt(it.getColumnIndexOrThrow(DBH.COL_ID)),
+                    nama = it.getString(it.getColumnIndexOrThrow(DBH.COL_NAMA)),
+                    harga = it.getInt(it.getColumnIndexOrThrow(DBH.COL_HARGA)), // ✅ FIX
+                    deskripsi = it.getString(it.getColumnIndexOrThrow(DBH.COL_DESKRIPSI)),
+                    tersedia = it.getInt(it.getColumnIndexOrThrow(DBH.COL_TERSEDIA))
+                )
+            } else null
+        }
+    }
+
+    fun updateKendaraan(k: KendaraanEntity): Int {
+        val cv = ContentValues().apply {
+            put(DBH.COL_NAMA, k.nama)
+            put(DBH.COL_HARGA, k.harga)
+            put(DBH.COL_DESKRIPSI, k.deskripsi)
+            put(DBH.COL_TERSEDIA, k.tersedia)
+        }
+
+        return db.writableDatabase.update(
+            DBH.TABLE_KENDARAAN,
+            cv,
+            "${DBH.COL_ID} = ?",
+            arrayOf(k.id.toString())
+        )
+    }
+
+
+    fun deleteKendaraan(id: Int): Int {
+        return db.writableDatabase.delete(
+            DBH.TABLE_KENDARAAN,
+            "${DBH.COL_ID} = ?",
+            arrayOf(id.toString())
+        )
+    }
+
+    fun countAvailable(): Int {
+        val cursor = db.readableDatabase.rawQuery(
+            "SELECT COUNT(*) FROM ${DBH.TABLE_KENDARAAN} WHERE ${DBH.COL_TERSEDIA} = 1",
+            null
+        )
+
+        return cursor.use {
+            if (it.moveToFirst()) it.getInt(0) else 0
+        }
+    }
+}
