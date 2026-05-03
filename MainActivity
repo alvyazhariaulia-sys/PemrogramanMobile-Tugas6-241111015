@@ -1,0 +1,77 @@
+package com.utama.aplikasikendarin
+
+import android.content.Intent
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import com.utama.aplikasikendarin.databinding.ActivityMainBinding
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var sessionManager: SessionManager
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+      
+        sessionManager = SessionManager(this)
+
+      
+        if (!sessionManager.isLoggedIn()) {
+            startActivity(Intent(this, LoginKendarain::class.java))
+            finish()
+            return
+        }
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+     
+        val goToProfile = intent.getBooleanExtra("GO_TO_PROFILE", false)
+        val goToTransaksi = intent.getBooleanExtra("GO_TO_TRANSAKSI", false)
+
+        if (savedInstanceState == null) {
+
+            val fragment: Fragment = when {
+                goToProfile -> ProfileFragment()
+                goToTransaksi -> HistoryFragment()
+                else -> HomeFragment()
+            }
+
+            replaceFragment(fragment)
+
+            binding.bottomNavigation.selectedItemId = when {
+                goToProfile -> R.id.nav_profile
+                goToTransaksi -> R.id.nav_transaksi
+                else -> R.id.nav_home
+            }
+        }
+
+        setupBottomNavigation()
+    }
+
+    private fun setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+
+            val fragment = when (item.itemId) {
+                R.id.nav_home -> HomeFragment()
+                R.id.nav_kendaraan -> KendaraanFragment()
+                R.id.nav_transaksi -> HistoryFragment()
+                R.id.nav_profile -> ProfileFragment()
+                else -> null
+            }
+
+            fragment?.let {
+                replaceFragment(it)
+                true
+            } ?: false
+        }
+    }
+
+    private fun replaceFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
+    }
+}
