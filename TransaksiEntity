@@ -1,0 +1,10 @@
+package com.utama.aplikasikendarin
+
+data class TransaksiEntity(
+    val id: Int = 0,
+    val namaKendaraan: String,
+    val harga: String,
+    val tanggal: String,
+    val status: String = "ONGOING",
+    val metodePembayaran: String = "Cash"
+)
