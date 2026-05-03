@@ -1,0 +1,49 @@
+package com.utama.aplikasikendarin
+
+import android.os.Bundle
+import android.view.*
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import com.utama.aplikasikendarin.databinding.FragmentDetailKendaraanBinding
+
+class DetailKendaraanFragment : Fragment() {
+
+    private var _binding: FragmentDetailKendaraanBinding? = null
+    private val binding get() = _binding!!
+
+    private lateinit var kendaraan: Kendaraan
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        kendaraan = Kendaraan(
+            nama = arguments?.getString("nama") ?: "",
+            harga = arguments?.getString("harga") ?: "0",
+            deskripsi = arguments?.getString("deskripsi") ?: "",
+            gambar = arguments?.getInt("gambar") ?: R.drawable.porsche
+        )
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        _binding = FragmentDetailKendaraanBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+
+        binding.ivMobil.setImageResource(kendaraan.gambar)
+        binding.tvNama.text = kendaraan.nama
+        binding.tvHarga.text = "Rp ${kendaraan.harga} / Hari"
+        binding.tvDeskripsi.text = kendaraan.deskripsi
+
+        binding.btnSewa.setOnClickListener {
+            Toast.makeText(requireContext(), "Lanjut ke booking...", Toast.LENGTH_SHORT).show()
+            // nanti bisa panggil dialog booking
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
