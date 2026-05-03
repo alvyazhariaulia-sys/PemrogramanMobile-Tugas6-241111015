@@ -1,0 +1,67 @@
+package com.utama.aplikasikendarin
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+
+class KendaraanDatabaseHelper(context: Context) :
+    SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
+
+    companion object {
+        private const val DB_NAME = "kendarin_app.db"
+        private const val DB_VERSION = 1
+
+        const val TABLE_KENDARAAN = "kendaraan"
+
+        const val COL_ID = "id"
+        const val COL_NAMA = "nama"
+        const val COL_HARGA = "harga"
+        const val COL_DESKRIPSI = "deskripsi"
+        const val COL_GAMBAR = "gambar"
+        const val COL_LOKASI = "lokasi"
+        const val COL_TERSEDIA = "tersedia"
+    }
+
+    override fun onCreate(db: SQLiteDatabase) {
+        val createTable = """
+            CREATE TABLE $TABLE_KENDARAAN (
+                $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_NAMA TEXT NOT NULL,
+                $COL_HARGA INTEGER NOT NULL,
+                $COL_DESKRIPSI TEXT,
+                $COL_GAMBAR INTEGER,
+                $COL_LOKASI TEXT,
+                $COL_TERSEDIA INTEGER DEFAULT 1
+            )
+        """.trimIndent()
+
+        db.execSQL(createTable)
+        insertSampleData(db)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_KENDARAAN")
+        onCreate(db)
+    }
+
+    private fun insertSampleData(db: SQLiteDatabase) {
+        val sampleKendaraan = listOf(
+            arrayOf("Porsche 911 Carrera", "5500000", "Mobil sport premium", "Jakarta"),
+            arrayOf("Toyota Alphard", "2500000", "Mobil keluarga mewah", "Jakarta"),
+            arrayOf("Honda CBR250RR", "450000", "Motor sport cepat", "Bandung")
+        )
+
+        sampleKendaraan.forEach { k ->
+            val cv = ContentValues().apply {
+                put(COL_NAMA, k[0])
+                put(COL_HARGA, k[1].toInt())
+                put(COL_DESKRIPSI, k[2])
+                put(COL_LOKASI, k[3])
+                put(COL_GAMBAR, 0) // Placeholder
+                put(COL_TERSEDIA, 1)
+            }
+            db.insert(TABLE_KENDARAAN, null, cv)
+        }
+    }
+}
