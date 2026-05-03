@@ -1,0 +1,54 @@
+package com.utama.aplikasikendarin
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.utama.aplikasikendarin.databinding.FragmentDashboardBinding
+import java.text.NumberFormat
+import java.util.Locale
+
+class DashboardFragment : Fragment() {
+
+    private var _binding: FragmentDashboardBinding? = null
+    private val binding get() = _binding!!
+
+    private lateinit var repo: TransaksiRepository
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentDashboardBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        repo = TransaksiRepository(requireContext())
+
+        val data = repo.getAllTransaksi()
+
+        binding.tvTotalTransaksi.text = "Total Transaksi: ${data.size}"
+
+        val totalIncome = data.sumOf { transaksi ->
+            transaksi.harga
+                .replace("[^0-9]".toRegex(), "")
+                .toIntOrNull() ?: 0
+        }
+
+        val formattedIncome = NumberFormat
+            .getCurrencyInstance(Locale("in", "ID"))
+            .format(totalIncome)
+
+        binding.tvTotalIncome.text = "Total Income: $formattedIncome"
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
