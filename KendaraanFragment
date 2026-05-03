@@ -1,0 +1,208 @@
+package com.utama.aplikasikendarin
+
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.utama.aplikasikendarin.databinding.FragmentKendaraanBinding
+import java.text.NumberFormat
+import java.util.*
+
+class KendaraanFragment : Fragment() {
+
+    private var _binding: FragmentKendaraanBinding? = null
+    private val binding get() = _binding!!
+
+    private lateinit var repository: KendaraanRepository
+    private lateinit var transaksiRepo: TransaksiRepository
+    private lateinit var adapter: KendaraanAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentKendaraanBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        repository = KendaraanRepository(requireContext())
+        transaksiRepo = TransaksiRepository(requireContext())
+
+        binding.rvKendaraan.layoutManager = LinearLayoutManager(requireContext())
+
+        loadData()
+    }
+
+    private fun loadData() {
+        val data = repository.getAllKendaraan()
+
+        val listUI = data.map { item ->
+            Kendaraan(
+                nama = item.nama,
+                harga = item.harga.toString(),
+                deskripsi = item.deskripsi,
+                gambar = R.drawable.porsche
+            )
+        }
+
+        adapter = KendaraanAdapter(listUI) { kendaraan ->
+            showBookingDialog(kendaraan)
+        }
+
+        binding.rvKendaraan.adapter = adapter
+    }
+
+    // =========================
+    // 🔥 BOOKING DIALOG
+    // =========================
+    private fun showBookingDialog(kendaraan: Kendaraan) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_booking, null)
+
+        val etNama = dialogView.findViewById<EditText>(R.id.etNama)
+        val etTanggal = dialogView.findViewById<EditText>(R.id.etTanggal)
+        val etJam = dialogView.findViewById<EditText>(R.id.etJam)
+        val etDurasi = dialogView.findViewById<EditText>(R.id.etDurasi)
+        val tvTotal = dialogView.findViewById<TextView>(R.id.tvTotal)
+        val btnBooking = dialogView.findViewById<Button>(R.id.btnBooking)
+
+        // PREFILL USER
+        val session = SessionManager(requireContext())
+        etNama.setText(session.getUsername())
+
+        val hargaPerHari = kendaraan.harga.toIntOrNull() ?: 0
+        var totalHarga = 0
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .create()
+
+        dialog.show()
+
+        // DATE PICKER
+        etTanggal.setOnClickListener {
+            val cal = Calendar.getInstance()
+
+            DatePickerDialog(
+                requireContext(),
+                { _, y, m, d ->
+                    etTanggal.setText(String.format("%02d-%02d-%d", d, m + 1, y))
+                },
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        // TIME PICKER
+        etJam.setOnClickListener {
+            val cal = Calendar.getInstance()
+
+            TimePickerDialog(
+                requireContext(),
+                { _, h, min ->
+                    etJam.setText(String.format("%02d:%02d", h, min))
+                },
+                cal.get(Calendar.HOUR_OF_DAY),
+                cal.get(Calendar.MINUTE),
+                true
+            ).show()
+        }
+
+        // AUTO TOTAL
+        etDurasi.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                val durasi = s.toString().toIntOrNull() ?: 0
+                totalHarga = hargaPerHari * durasi
+
+                val formatted = NumberFormat
+                    .getCurrencyInstance(Locale("in", "ID"))
+                    .format(totalHarga)
+
+                tvTotal.text = formatted
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
+        // CLICK BOOKING → PINDAH KE PAYMENT
+        btnBooking.setOnClickListener {
+
+            val nama = etNama.text.toString()
+            val tanggal = etTanggal.text.toString()
+            val jam = etJam.text.toString()
+            val durasi = etDurasi.text.toString()
+
+            if (nama.isEmpty() || tanggal.isEmpty() || jam.isEmpty() || durasi.isEmpty()) {
+                Toast.makeText(requireContext(), "Lengkapi semua data!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val fullTanggal = "$tanggal $jam"
+
+            dialog.dismiss()
+
+            // 🔥 LANJUT KE PAYMENT
+            showPaymentDialog(kendaraan, totalHarga, fullTanggal)
+        }
+    }
+
+    // =========================
+    // 🔥 PAYMENT DIALOG
+    // =========================
+    private fun showPaymentDialog(
+        kendaraan: Kendaraan,
+        totalHarga: Int,
+        tanggal: String
+    ) {
+        val view = layoutInflater.inflate(R.layout.dialog_payment, null)
+
+        val rgPayment = view.findViewById<RadioGroup>(R.id.rgPayment)
+        val btnBayar = view.findViewById<Button>(R.id.btnBayar)
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(view)
+            .create()
+
+        dialog.show()
+
+        btnBayar.setOnClickListener {
+
+            val metode = when (rgPayment.checkedRadioButtonId) {
+                R.id.rbOvo -> "OVO"
+                R.id.rbGopay -> "GoPay"
+                else -> "Cash"
+            }
+
+            val transaksi = TransaksiEntity(
+                namaKendaraan = kendaraan.nama,
+                harga = NumberFormat.getCurrencyInstance(Locale("in", "ID")).format(totalHarga),
+                tanggal = tanggal,
+                status = "DONE",
+                metodePembayaran = metode
+            )
+
+            transaksiRepo.addTransaksi(transaksi)
+
+            Toast.makeText(requireContext(), "Pembayaran berhasil 💰", Toast.LENGTH_SHORT).show()
+
+            dialog.dismiss()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
