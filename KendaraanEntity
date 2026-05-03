@@ -1,0 +1,9 @@
+package com.utama.aplikasikendarin
+
+data class KendaraanEntity(
+    val id: Int = 0,
+    val nama: String,
+    val harga: Int,
+    val deskripsi: String,
+    val tersedia: Int = 1
+)
