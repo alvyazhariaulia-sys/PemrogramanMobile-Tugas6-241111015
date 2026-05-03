@@ -1,0 +1,98 @@
+package com.utama.aplikasikendarin
+
+import android.graphics.Color
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.recyclerview.widget.RecyclerView
+import com.utama.aplikasikendarin.databinding.ItemHistoryKendaraanBinding
+
+class HistoryAdapter(
+    private val list: List<TransaksiEntity>
+) : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
+
+    class ViewHolder(val binding: ItemHistoryKendaraanBinding) :
+        RecyclerView.ViewHolder(binding.root)
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val binding = ItemHistoryKendaraanBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return ViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val item = list[position]
+        val context = holder.itemView.context
+
+
+        holder.binding.tvCarName.text = item.namaKendaraan
+        holder.binding.tvTotalAmount.text = item.harga
+        holder.binding.tvOrderDate.text = item.tanggal
+        holder.binding.tvOrderTitle.text = "ORDER ID : KDR-${item.id}"
+
+
+        val status = item.status.ifEmpty { "DONE" }
+
+        holder.binding.tvPaymentStatus.text =
+            if (status == "ONGOING") "⏳ Berjalan" else "✔ Selesai"
+
+        holder.binding.tvPaymentStatus.setTextColor(
+            if (status == "ONGOING")
+                Color.parseColor("#FFA000") // Kuning
+            else
+                Color.parseColor("#00A651") // Hijau
+        )
+
+        // =========================
+        // 🔹 GAMBAR DINAMIS
+        // =========================
+        val imageRes = when {
+            item.namaKendaraan.contains("Porsche", true) -> R.drawable.porsche
+            item.namaKendaraan.contains("Alphard", true) -> R.drawable.alphard
+            item.namaKendaraan.contains("CBR", true) -> R.drawable.cbr
+            else -> R.drawable.porsche
+        }
+
+        holder.binding.ivCarImage.setImageResource(imageRes)
+
+        // =========================
+        // 🔹 CLICK: DETAIL
+        // =========================
+        holder.binding.tvDetailsAction.setOnClickListener {
+            Toast.makeText(
+                context,
+                "Detail: ${item.namaKendaraan}",
+                Toast.LENGTH_SHORT
+            ).show()
+
+    
+        }
+
+  
+        holder.binding.tvRentAgainAction.setOnClickListener {
+            Toast.makeText(
+                context,
+                "Sewa lagi: ${item.namaKendaraan}",
+                Toast.LENGTH_SHORT
+            ).show()
+
+      
+        }
+
+
+        holder.binding.tvInvoiceAction.setOnClickListener {
+            Toast.makeText(
+                context,
+                "Invoice #KDR-${item.id}",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            // 🔥 NEXT: export PDF / detail invoice
+        }
+    }
+
+    override fun getItemCount(): Int = list.size
+}
